@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1Fichier Direct Link Generator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js CDN -->
+    <script src="https://unpkg.com/vue@3.4.27/dist/vue.global.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles for animations and theme */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Vue Transition Animations */
+        .fade-enter-active,
+        .fade-leave-active {
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .fade-enter-from,
+        .fade-leave-to {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+    </style>
+</head>
+<body class="bg-black text-gray-100 antialiased">
+
+    <div id="app" class="flex flex-col items-center justify-center min-h-screen p-4">
+        
+        <div class="w-full max-w-lg space-y-8">
+            <!-- Header -->
+            <div class="text-center">
+                <h1 class="text-4xl font-bold text-white tracking-tight">1Fichier Link Generator</h1>
+                <p class="mt-2 text-gray-400">Bypass download limits and get your direct link instantly.</p>
+            </div>
+
+            <!-- Input Form -->
+            <form @submit.prevent="generateLink" class="space-y-4">
+                <div class="relative">
+                    <input 
+                        v-model="urlInput"
+                        type="text" 
+                        placeholder="https://1fichier.com/?p4j18q797j..." 
+                        class="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:outline-none transition-all duration-300 text-white placeholder-gray-500"
+                        :disabled="isLoading"
+                    >
+                </div>
+                <button 
+                    type="submit" 
+                    class="w-full flex items-center justify-center gap-2 px-4 py-3 font-semibold text-white bg-orange-600 rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-orange-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
+                    :disabled="isLoading"
+                >
+                    <svg v-if="!isLoading" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-zap"><path d="M4 14a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H4Z"/><path d="M9 21a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1H9Z"/><path d="M14 4a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-2Z"/><path d="M19 14a1 1 0 0 1-1-1v-1a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1h-2Z"/><path d="M11 7H6l7-7 2 11h5l-7 7-2-11Z"/></svg>
+                    <span v-if="!isLoading">Generate Link</span>
+                    <span v-if="isLoading">Generating...</span>
+                </button>
+            </form>
+
+            <!-- Loading Spinner -->
+            <div v-if="isLoading" class="flex justify-center items-center py-6">
+                 <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+            </div>
+
+            <!-- Result Card -->
+            <transition name="fade">
+                <div v-if="fileInfo" class="bg-gray-900 border border-gray-800 rounded-lg shadow-2xl p-6 space-y-5">
+                    <h3 class="text-lg font-semibold text-white break-words">{{ fileInfo.filename }}</h3>
+                    
+                    <!-- File Details -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-300">
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-orange-400 flex-shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                            <span>{{ formatFileSize(fileInfo.filesize) }}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-orange-400 flex-shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                            <span>{{ fileInfo.date }}</span>
+                        </div>
+                         <div class="flex items-center gap-2 sm:col-span-2">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-orange-400 flex-shrink-0"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m10 10.5 4 4"/><path d="m14 10.5-4 4"/></svg>
+                            <span class="truncate">{{ fileInfo.content_type }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-col sm:flex-row gap-3 pt-3">
+                        <button @click="triggerDownload" :disabled="isDownloading" class="w-full flex items-center justify-center gap-2 px-4 py-3 font-semibold text-black bg-orange-400 rounded-lg hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-orange-400 transition-all transform hover:scale-105 disabled:opacity-75 disabled:cursor-wait">
+                            <svg v-if="!isDownloading" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                            <svg v-if="isDownloading" class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span>{{ isDownloading ? 'Downloading...' : 'Download' }}</span>
+                        </button>
+                        <button @click="copyToClipboard" class="w-full flex items-center justify-center gap-2 px-4 py-3 font-semibold text-white bg-gray-700 rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-gray-500 transition-all">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                            {{ copyButtonText }}
+                        </button>
+                    </div>
+                </div>
+            </transition>
+
+            <!-- Error Message -->
+            <transition name="fade">
+                <div v-if="error" class="bg-red-900/40 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg text-center">
+                    <strong>Error:</strong> {{ error }}
+                </div>
+            </transition>
+        </div>
+        
+        <!-- Footer -->
+        <footer class="absolute bottom-4 text-center text-gray-500 text-sm">
+            Made with <span class="text-orange-500">&hearts;</span> by thecapt1917
+        </footer>
+    </div>
+
+    <script>
+        const { createApp, ref, computed } = Vue;
+
+        createApp({
+            setup() {
+                // Reactive state
+                const urlInput = ref('');
+                const fileInfo = ref(null);
+                const error = ref(null);
+                const isLoading = ref(false);
+                const isDownloading = ref(false);
+                const directLink = ref('');
+                const copyButtonText = ref('Copy Link');
+                
+                // Method to format file size
+                const formatFileSize = (bytes) => {
+                    if (bytes === 0) return '0 Bytes';
+                    const k = 1024;
+                    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                };
+
+                // Method to extract file ID from URL
+                const extractFileId = (url) => {
+                    try {
+                        const match = url.match(/(?:\?|\/)([a-zA-Z0-9]{20,})(?:[\/&]|$)/);
+                        return match ? match[1] : null;
+                    } catch (e) {
+                        return null;
+                    }
+                };
+
+                // Main method to generate the link
+                const generateLink = async () => {
+                    // Reset state
+                    fileInfo.value = null;
+                    error.value = null;
+                    directLink.value = '';
+                    copyButtonText.value = 'Copy Link';
+                    
+                    if (!urlInput.value.trim()) {
+                        error.value = "Please enter a 1Fichier URL.";
+                        return;
+                    }
+                    
+                    // Validate that the URL is a 1fichier.com link
+                    try {
+                        const url = new URL(urlInput.value);
+                        if (url.hostname !== '1fichier.com' && url.hostname !== 'www.1fichier.com') {
+                           error.value = "Invalid URL. Please use a 1fichier.com link.";
+                           return;
+                        }
+                    } catch (e) {
+                        error.value = "Invalid URL format. Please enter a full URL (e.g., https://...).";
+                        return;
+                    }
+
+
+                    const fileId = extractFileId(urlInput.value);
+
+                    if (!fileId) {
+                        error.value = "Could not extract a valid file ID from the URL.";
+                        return;
+                    }
+                    
+                    isLoading.value = true;
+                    
+                    try {
+                        const apiUrl = `https://1f.stpn.eu.org/api/info/${fileId}`;
+                        const response = await fetch(apiUrl);
+                        const data = await response.json();
+
+                        if (!response.ok || !data.ok) {
+                            throw new Error(data.message || 'An unknown error occurred.');
+                        }
+                        
+                        fileInfo.value = data;
+                        directLink.value = `https://1f.stpn.eu.org/download/${fileId}`;
+
+                    } catch (err) {
+                        error.value = err.message;
+                    } finally {
+                        isLoading.value = false;
+                    }
+                };
+
+                // Method to initiate download
+                const triggerDownload = () => {
+                    if (!directLink.value || !fileInfo.value) return;
+
+                    isDownloading.value = true;
+
+                    // Create a temporary link element to trigger the download
+                    const link = document.createElement('a');
+                    link.href = directLink.value;
+                    link.setAttribute('download', fileInfo.value.filename);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    // Reset button state after a short delay to provide feedback
+                    setTimeout(() => {
+                        isDownloading.value = false;
+                    }, 3000);
+                };
+                
+                // Method to copy link to clipboard
+                const copyToClipboard = () => {
+                    if (!directLink.value) return;
+                    
+                    navigator.clipboard.writeText(directLink.value).then(() => {
+                        copyButtonText.value = 'Copied!';
+                        setTimeout(() => {
+                            copyButtonText.value = 'Copy Link';
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Failed to copy: ', err);
+                        copyButtonText.value = 'Failed!';
+                    });
+                };
+
+                // Return state and methods to the template
+                return {
+                    urlInput,
+                    fileInfo,
+                    error,
+                    isLoading,
+                    isDownloading,
+                    directLink,
+                    copyButtonText,
+                    generateLink,
+                    formatFileSize,
+                    triggerDownload,
+                    copyToClipboard
+                };
+            }
+        }).mount('#app');
+    </script>
+
+</body>
+</html>
